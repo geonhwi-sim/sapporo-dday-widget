@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f8fbfd">
+<title>눈 오는 날의 D-day</title>
+<style>
+  :root { color-scheme: light; --ink:#34495b; --muted:#7e93a3; --blue:#8eb8d2; --blue-deep:#547f9c; --ice:#edf5f9; --line:#dce8ef; --berry:#bc777c; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:22px; background:transparent; color:var(--ink); font-family:ui-rounded,"Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif; }
+  .card { width:min(100%,480px); overflow:hidden; position:relative; padding:28px 30px 24px; border:1px solid rgba(199,218,230,.85); border-radius:24px; background:linear-gradient(155deg,rgba(255,255,255,.98),rgba(242,248,251,.97)); box-shadow:0 14px 34px rgba(84,127,156,.10), inset 0 1px 0 white; }
+  .card::before { content:""; position:absolute; width:190px;height:190px;right:-64px;top:-105px;border-radius:50%;background:radial-gradient(circle,rgba(192,220,236,.45),rgba(192,220,236,0) 70%);pointer-events:none; }
+  .topline { position:relative; display:flex; align-items:center; gap:9px; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+  .flake { color:var(--blue); font-size:16px; line-height:1; }
+  .event { display:block; width:100%; margin:15px 0 0; padding:0; border:0; outline:0; background:transparent; color:var(--ink); font-size:clamp(21px,5vw,27px); line-height:1.3; font-weight:700; font-family:inherit; letter-spacing:-.04em; }
+  .event::placeholder { color:#a9bac6; }
+  .date-row { margin-top:16px; display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; }
+  input[type=date] { min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.78); color:var(--blue-deep); font-size:13px; font-weight:600; font-family:inherit; }
+  .count-area { min-height:130px; margin-top:18px; display:flex; align-items:center; justify-content:center; gap:10px; border-radius:18px; background:linear-gradient(135deg,rgba(234,244,249,.8),rgba(248,251,253,.5)); }
+  .prefix { color:var(--blue-deep); font-size:clamp(24px,6vw,32px); font-weight:700; letter-spacing:-.06em; }
+  .number { color:#6b9dbc; font-size:clamp(64px,17vw,88px); font-weight:750; letter-spacing:-.09em; line-height:1; font-variant-numeric:tabular-nums; }
+  .number.today { color:var(--berry); }
+  .unit { align-self:center; margin:25px 0 0 -3px; color:var(--muted); font-size:15px; font-weight:600; }
+  .hint { min-height:19px; margin:12px 0 0; text-align:center; color:var(--muted); font-size:12px; }
+  .foot { display:flex; justify-content:center; align-items:center; gap:7px; margin-top:18px; color:#9aabb7; font-size:10px; letter-spacing:.08em; }
+  .foot::before,.foot::after { content:""; width:24px; height:1px; background:var(--line); }
+  @media(max-width:400px){.card{padding:23px 20px 20px;border-radius:20px}.count-area{min-height:112px}}
+</style>
+</head>
+<body>
+<main class="card" aria-label="디데이 위젯">
+  <div class="topline"><span class="flake" aria-hidden="true">✳</span><span>WINTER PLANS</span></div>
+  <input class="event" id="event" type="text" maxlength="28" aria-label="일정 이름" placeholder="기다리는 날의 이름">
+  <div class="date-row"><span>날짜</span><input id="date" type="date" aria-label="목표 날짜"></div>
+  <section class="count-area" aria-live="polite">
+    <span class="prefix" id="prefix">D-</span><span class="number" id="number">—</span><span class="unit" id="unit"></span>
+  </section>
+  <p class="hint" id="hint">일정 이름과 날짜를 입력해 주세요.</p>
+  <div class="foot">A LITTLE CLOSER EACH DAY</div>
+</main>
+<script>
+(() => {
+  const eventInput = document.querySelector('#event');
+  const dateInput = document.querySelector('#date');
+  const prefix = document.querySelector('#prefix');
+  const number = document.querySelector('#number');
+  const unit = document.querySelector('#unit');
+  const hint = document.querySelector('#hint');
+  try {
+    eventInput.value = localStorage.getItem('sapporo-dday-title') || '삿포로 여행';
+    dateInput.value = localStorage.getItem('sapporo-dday-date') || '';
+  } catch (_) { eventInput.value = '삿포로 여행'; }
+  function render() {
+    const title = eventInput.value.trim();
+    const raw = dateInput.value;
+    try { localStorage.setItem('sapporo-dday-title', eventInput.value); localStorage.setItem('sapporo-dday-date', raw); } catch (_) {}
+    if (!raw) { prefix.textContent='D-'; number.textContent='—'; unit.textContent=''; number.classList.remove('today'); hint.textContent='일정 이름과 날짜를 입력해 주세요.'; return; }
+    const [y,m,d] = raw.split('-').map(Number);
+    const target = Date.UTC(y,m-1,d);
+    const now = new Date();
+    const today = Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+    const days = Math.round((target-today)/86400000);
+    number.classList.toggle('today',days===0);
+    if (days > 0) { prefix.textContent='D-'; number.textContent=days.toLocaleString('ko-KR'); unit.textContent='일'; hint.textContent=title ? `${title}까지 ${days}일 남았어요.` : `목표일까지 ${days}일 남았어요.`; }
+    else if (days === 0) { prefix.textContent='D'; number.textContent='DAY'; unit.textContent=''; hint.textContent=`오늘이에요${title ? ` · ${title}` : ''}!`; }
+    else { prefix.textContent='D+'; number.textContent=Math.abs(days).toLocaleString('ko-KR'); unit.textContent='일'; hint.textContent=title ? `${title}이(가) ${Math.abs(days)}일 지났어요.` : `목표일이 ${Math.abs(days)}일 지났어요.`; }
+  }
+  eventInput.addEventListener('input',render); dateInput.addEventListener('input',render); render();
+  setInterval(render,60000);
+})();
+</script>
+</body>
+</html>
+
